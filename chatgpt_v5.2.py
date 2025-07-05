@@ -473,7 +473,7 @@ def main():
             "DVA Website Home",
             "DVA Website Latest News",
             "X DVA",
-            "Instagram DVA"
+            # "Instagram DVA"
         ],
         "AWM": [
             "articles",
