@@ -35,7 +35,8 @@ FIRST_PAGE_URL = {
     "RMA":"http://www.rma.gov.au/",
     "X AWM": "https://x.com/awmemorial?lang=en",
     "X DVA": "https://x.com/DVAAus",
-    "Instagram AWM": "https://www.instagram.com/dvaausgov/"
+    "Instagram DVA": "https://www.instagram.com/dvaausgov/",
+    # "Instagram AWM" : 
 }
 
 TOP5_SELECTORS = {
@@ -55,7 +56,9 @@ TOP5_SELECTORS = {
 
     "X DVA" : None,
 
-    "Instagram AWM": None,
+    # "Instagram AWM": None,
+
+    "Instagram DVA":None,
 
 
     # All the other DVA pages share the same “views” layout
@@ -292,72 +295,113 @@ async def ask_agent(csv_text: str, question: str, model: str, chat_history: list
     def count_tokens(text: str) -> int:
         return len(encoding.encode(text))
 
-    # detect article requests
+    # detect article requests - more comprehensive detection
     is_article = any(kw in question.lower() for kw in (
-        "write an article", "write a comprehensive article", "article"
+        "write an article", "write a comprehensive article", "article", 
+        "newsletter", "newsletter article", "create an article"
     ))
 
-    # build system prompt
+    # build system prompt with stronger instructions
     if is_article:
         system_prompt = (
-            "You are a professional writer. Produce a markdown article with:\n"
-            "- **Introduction** label in bold, followed by its paragraph.\n"
-            "- One or more sections, each starting with a bold label (e.g. **Background**, **Analysis**, etc.)\n"
-            "- **Conclusion** label in bold, followed by its paragraph.\n"
-            "At the very end, write exactly one follow-up question as plain text, e.g.:\n"
-            "Would you like to modify or expand this article?\n"
-            "Do NOT use any markdown headings (#) for that question or add extra closing remarks."
+            "You are a helpful and concise AI newsletter assistant for an Australian veterans' organization (TPI). "
+            "When the user requests a newsletter article, you MUST strictly follow this structure and formatting. "
+            "DO NOT deviate from this format under any circumstances.\n\n"
+            "**MANDATORY FORMAT REQUIREMENTS:**\n"
+            "1. Start with a short, clear, and relevant TITLE in bold (**text**) on its own line.(MUST PROVIDED)\n"
+            "2. Write a headline in bold — 1 to 2 sentences summarising what's new or important.(MUST PROVIDED) "
+            "   Do not label it as 'headline' — just place it directly beneath the title.\n"
+            "3. Write exactly 4 to 5 short paragraphs in plain text (no bold formatting). Each paragraph should have 3 to 5 sentences.\n"
+            "4. Use calm, clear, supportive language. Reference source names where relevant (e.g., DVA, AWM, The Pineapple Express).\n"
+            "5. Only use information that has been scraped or provided. Do not invent facts.\n"
+            "6. Focus on topics relevant to TPI members — such as policy changes, health support, community events, or benefits.\n"
+            "7. End with exactly one or two plain text follow-up questions. Do not bold or number these questions.\n\n"
+            "IMPORTANT: Follow this format exactly. Do not add extra formatting, headers, or sections."
         )
     else:
         system_prompt = (
-            "You are ChatGPT, a helpful assistant. Answer the user’s question directly and concisely, "
+            "You are ChatGPT, a helpful assistant. Answer the user's question directly and concisely, "
             "using the data if relevant. You may use simple markdown (lists, bold) but do NOT write an article. "
             "End with one brief follow-up question as plain text (no #)."
         )
 
     # prepare CSV + question
-    lines  = csv_text.split("\n")
-    header = lines[0]
-    rows   = lines[1:]
-    body   = "\n".join(rows)
-    user_block = f"{header}\n{body}\n\nUser asked: {question}\n"
-
-    # token budget
+    lines = csv_text.split("\n")
+    header = lines[0] if lines else ""
+    rows = lines[1:] if len(lines) > 1 else []
+    body = "\n".join(rows)
+    
+    # token budget - adjusted for better accuracy
     MODEL_MAX = 16385
-    HEADROOM  = 512
-    static    = count_tokens(system_prompt) + count_tokens(header) + count_tokens(f"\nUser asked: {question}\n")
-    usable    = MODEL_MAX - HEADROOM - static
+    HEADROOM = 512  # Increased headroom for response
+    static = count_tokens(system_prompt) + count_tokens(header) + count_tokens(f"\nUser asked: {question}\n")
+    usable = MODEL_MAX - HEADROOM - static
 
-    # if body fits, great
+    # prepare final prompt
     if count_tokens(body) <= usable:
-        final_prompt = user_block
+        final_prompt = f"Here is a CSV dataset. Please analyze it and answer the question based only on its content.\nCSV:\n{header}\n{body}\n\nQuestion: {question}"
     else:
-        # truncate to first N rows that fit
-        avg_per_row = max(1, count_tokens("\n".join(rows)) // len(rows))
-        max_rows    = max(1, usable // avg_per_row)
-        truncated   = "\n".join(rows[:max_rows])
-        final_prompt = f"{header}\n{truncated}\n\nUser asked: {question}\n"
+        avg_per_row = max(1, count_tokens("\n".join(rows)) // len(rows)) if rows else 1
+        max_rows = max(1, usable // avg_per_row)
+        truncated = "\n".join(rows[:max_rows])
+        final_prompt = f"Here is a CSV dataset. Please analyze it and answer the question based only on its content.\nCSV:\n{header}\n{truncated}\n\nQuestion: {question}"
+
+    # example article for better consistency
+    example_article = (
+        "**Supporting Veterans Through New Legislation**\n"
+        "**Parliament passes new measures aimed at improving health care access and post-service support for veterans.**\n\n"
+        "Veterans across Australia can expect improved support with the introduction of new legislation passed this month. "
+        "These changes, led by the Department of Veterans' Affairs (DVA), focus on strengthening healthcare services and long-term welfare programs. "
+        "They reflect ongoing efforts to ensure that veterans and their families are receiving the support they need.\n\n"
+        "New initiatives include expanded mental health services, a streamlined claims process, and increased funding for veteran wellbeing. "
+        "These are part of DVA's broader commitment to putting veterans first and improving access to quality care.\n\n"
+        "Veterans are encouraged to explore the new services available, attend upcoming community information sessions, and provide feedback to shape future improvements.\n\n"
+        "Have you accessed any of these services yet?\n"
+        "What additional support would you like to see introduced?"
+    )
 
     async def send_openai(prompt: str) -> str:
         client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        messages = [
+            {"role": "system", "content": system_prompt}
+        ]
+        
+        # Add example for article requests
+        if is_article:
+            messages.extend([
+                {"role": "user", "content": "Write an article about veterans' support legislation."},
+                # {"role": "assistant", "content": example_article}
+            ])
+        
+        messages.append({"role": "user", "content": prompt})
+
         resp = await client.chat.completions.create(
             model=model,
-            messages=[
-                {"role": "system",  "content": system_prompt},
-                {"role": "user",    "content": prompt},
-            ]
+            messages=messages,
+            temperature=0.1,  # Limit response length
         )
         return resp.choices[0].message.content.strip()
 
     async def send_groq(prompt: str) -> str:
         def sync():
             client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+            messages = [
+                {"role": "system", "content": system_prompt}
+            ]
+            
+            # Add example for article requests
+            if is_article:
+                messages.extend([
+                    {"role": "user", "content": "Write an article about veterans' support legislation."},
+                    {"role": "assistant", "content": example_article}
+                ])
+            
+            messages.append({"role": "user", "content": prompt})
+
             resp = client.chat.completions.create(
                 model=model,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user",   "content": prompt},
-                ]
+                messages=messages,
+                temperature=0.1,  # Limit response length
             )
             return resp.choices[0].message.content.strip()
         return await asyncio.to_thread(sync)
@@ -368,10 +412,7 @@ async def ask_agent(csv_text: str, question: str, model: str, chat_history: list
     else:
         return await send_openai(final_prompt)
 
-
-
-
-
+    
 def create_docx(content: str) -> BytesIO:
     doc = Document()
     doc.add_heading("Assistant Response", level=1)
@@ -380,9 +421,6 @@ def create_docx(content: str) -> BytesIO:
     doc.save(buffer)
     buffer.seek(0)
     return buffer
-
-
-
 
 
 def main():
@@ -435,12 +473,13 @@ def main():
             "DVA Website About",
             "DVA Website Home",
             "DVA Website Latest News",
-            "X DVA"
+            "X DVA",
+            "Instagram DVA"
         ],
         "AWM": [
             "articles",
             "X AWM",
-            "Instagram AWM"
+            # "Instagram AWM"
         ],
         "RMA": [
             "RMA",
