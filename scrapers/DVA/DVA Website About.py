@@ -53,13 +53,13 @@ from itertools import cycle
 from bs4 import BeautifulSoup
 import csv
 proxies_list = [
-    'https://beqcfgqd:zx2ta8sl24bs@172.245.158.37:5990',
-    'https://beqcfgqd:zx2ta8sl24bs@85.204.255.7:6422',
-    'https://beqcfgqd:zx2ta8sl24bs@64.43.90.225:6740',
-    'https://beqcfgqd:zx2ta8sl24bs@82.153.248.29:5405',
-    'https://beqcfgqd:zx2ta8sl24bs@145.223.51.147:6680',
-    'https://beqcfgqd:zx2ta8sl24bs@150.107.202.103:6720',
-    'https://beqcfgqd:zx2ta8sl24bs@172.245.158.37:5990',  # duplicate
+    'http://beqcfgqd:zx2ta8sl24bs@172.245.158.37:5990',
+    'http://beqcfgqd:zx2ta8sl24bs@85.204.255.7:6422',
+    'http://beqcfgqd:zx2ta8sl24bs@64.43.90.225:6740',
+    'http://beqcfgqd:zx2ta8sl24bs@82.153.248.29:5405',
+    'http://beqcfgqd:zx2ta8sl24bs@145.223.51.147:6680',
+    'https//beqcfgqd:zx2ta8sl24bs@150.107.202.103:6720',
+    'http://beqcfgqd:zx2ta8sl24bs@172.245.158.37:5990',  # duplicate
 ]
 
 proxies_cycle = cycle(proxies_list)

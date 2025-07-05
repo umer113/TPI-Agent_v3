@@ -22,7 +22,7 @@ options.add_argument("--disable-dev-shm-usage")
 options.add_argument("--window-size=1920,1080")
 
 # ✅ Use the ChromeDriver path that works inside Docker
-service = Service("/usr/lib/chromium/chromedriver")
+service = Service("/usr/bin/chromedriver")
 driver = webdriver.Chrome(service=service, options=options)
 
 BASE_URL = "https://clik.dva.gov.au/"

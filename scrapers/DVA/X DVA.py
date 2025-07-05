@@ -12,16 +12,70 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from webdriver_manager.chrome import ChromeDriverManager
 
 # Initialize Selenium WebDriver
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+
 def init_driver():
     chrome_options = Options()
+    chrome_options.binary_location = "/usr/bin/chromium"  # ✅ Chrome browser binary
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36")
-    service = Service(ChromeDriverManager().install())
+
+    service = Service("/usr/bin/chromedriver")  # ✅ Static path to ChromeDriver
     driver = webdriver.Chrome(service=service, options=chrome_options)
     return driver
+
+# Login to X.com
+def login_to_x(driver, username, password):
+    try:
+        driver.get("https://x.com/login")
+        
+        # Wait for username field
+        WebDriverWait(driver, 30).until(
+            EC.presence_of_element_located((By.NAME, "text"))
+        )
+        
+        # Enter username
+        username_field = driver.find_element(By.NAME, "text")
+        username_field.send_keys(username)
+        
+        # Click Next button
+        next_button = driver.find_element(By.XPATH, "//span[contains(text(), 'Next')]")
+        next_button.click()
+        
+        # Wait for password field
+        WebDriverWait(driver, 30).until(
+            EC.presence_of_element_located((By.NAME, "password"))
+        )
+        
+        # Enter password
+        password_field = driver.find_element(By.NAME, "password")
+        password_field.send_keys(password)
+        
+        # Click Login button
+        login_button = driver.find_element(By.XPATH, "//span[contains(text(), 'Log in')]")
+        login_button.click()
+        
+        # Wait for successful login by checking for home page or profile element
+        WebDriverWait(driver, 30).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "nav[aria-label='Primary']"))
+        )
+        print("Successfully logged in to X.com")
+        return True
+        
+    except TimeoutException:
+        print("Timeout during login process")
+        return False
+    except NoSuchElementException as e:
+        print(f"Error finding login elements: {e}")
+        return False
+    except Exception as e:
+        print(f"Error during login: {e}")
+        return False
 
 # Extract emojis from text
 def extract_emojis(text):
@@ -41,6 +95,7 @@ def extract_emojis(text):
         "]+", flags=re.UNICODE)
     return ''.join(emoji_pattern.findall(text))
 
+# Append data to CSV
 def append_to_csv(data, filename):
     if not data:
         return
@@ -50,9 +105,16 @@ def append_to_csv(data, filename):
     df.to_csv(filename, mode=mode, header=header, index=False)
     print(f"Appended {len(data)} posts to {filename}")
 
-def scrape_tweets(url, filename):
+# Scrape tweets after login
+def scrape_tweets(url, filename, username, password):
     driver = init_driver()
     try:
+        # Perform login
+        if not login_to_x(driver, username, password):
+            print("Login failed. Cannot proceed with scraping.")
+            return []
+
+        # Navigate to the target page
         driver.get(url)
 
         # Wait for initial page load
@@ -112,38 +174,39 @@ def scrape_tweets(url, filename):
                     # Initialize metrics
                     comments = likes = reposts = 0
 
-                    # try:
-                    #     # Wait for metric elements to be visible
-                    #     WebDriverWait(driver, 10).until(
-                    #         EC.visibility_of_all_elements_located((By.CSS_SELECTOR, "div[aria-label*='reply'], div[aria-label*='repost'], div[aria-label*='like']"))
-                    #     )
 
-                    #     # Comments (Reply)
-                    #     comments_elem = article.find_element(By.CSS_SELECTOR, "div[aria-label*='reply']")
-                    #     comments_label = comments_elem.get_attribute("aria-label")
-                    #     comments_match = re.search(r'(\d{1,3}(?:,\d{3})*|\d+)\s*(?:Reply|Comment)', comments_label, re.IGNORECASE)
-                    #     comments = int(comments_match.group(1).replace(',', '')) if comments_match else 0
+                    #                     # try:
+#                     #     # Wait for metric elements to be visible
+#                     #     WebDriverWait(driver, 10).until(
+#                     #         EC.visibility_of_all_elements_located((By.CSS_SELECTOR, "div[aria-label*='reply'], div[aria-label*='repost'], div[aria-label*='like']"))
+#                     #     )
 
-                    #     # Reposts (Retweet)
-                    #     reposts_elem = article.find_element(By.CSS_SELECTOR, "div[aria-label*='repost']")
-                    #     reposts_label = reposts_elem.get_attribute("aria-label")
-                    #     reposts_match = re.search(r'(\d{1,3}(?:,\d{3})*|\d+)\s*(?:Repost|Retweet)', reposts_label, re.IGNORECASE)
-                    #     reposts = int(reposts_match.group(1).replace(',', '')) if reposts_match else 0
+#                     #     # Comments (Reply)
+#                     #     comments_elem = article.find_element(By.CSS_SELECTOR, "div[aria-label*='reply']")
+#                     #     comments_label = comments_elem.get_attribute("aria-label")
+#                     #     comments_match = re.search(r'(\d{1,3}(?:,\d{3})*|\d+)\s*(?:Reply|Comment)', comments_label, re.IGNORECASE)
+#                     #     comments = int(comments_match.group(1).replace(',', '')) if comments_match else 0
 
-                    #     # Likes
-                    #     likes_elem = article.find_element(By.CSS_SELECTOR, "div[aria-label*='like']")
-                    #     likes_label = likes_elem.get_attribute("aria-label")
-                    #     likes_match = re.search(r'(\d{1,3}(?:,\d{3})*|\d+)\s*(?:Like)', likes_label, re.IGNORECASE)
-                    #     likes = int(likes_match.group(1).replace(',', '')) if likes_match else 0
+#                     #     # Reposts (Retweet)
+#                     #     reposts_elem = article.find_element(By.CSS_SELECTOR, "div[aria-label*='repost']")
+#                     #     reposts_label = reposts_elem.get_attribute("aria-label")
+#                     #     reposts_match = re.search(r'(\d{1,3}(?:,\d{3})*|\d+)\s*(?:Repost|Retweet)', reposts_label, re.IGNORECASE)
+#                     #     reposts = int(reposts_match.group(1).replace(',', '')) if reposts_match else 0
 
-                    #     print(f"Comments: {comments}, Reposts: {reposts}, Likes: {likes}")
+#                     #     # Likes
+#                     #     likes_elem = article.find_element(By.CSS_SELECTOR, "div[aria-label*='like']")
+#                     #     likes_label = likes_elem.get_attribute("aria-label")
+#                     #     likes_match = re.search(r'(\d{1,3}(?:,\d{3})*|\d+)\s*(?:Like)', likes_label, re.IGNORECASE)
+#                     #     likes = int(likes_match.group(1).replace(',', '')) if likes_match else 0
 
-                    # except NoSuchElementException as e:
-                    #     print(f"Metric elements not found: {e}")
-                    #     continue
-                    # except ValueError as e:
-                    #     print(f"Error converting text to integer: {e}")
-                    #     continue
+#                     #     print(f"Comments: {comments}, Reposts: {reposts}, Likes: {likes}")
+
+#                     # except NoSuchElementException as e:
+#                     #     print(f"Metric elements not found: {e}")
+#                     #     continue
+#                     # except ValueError as e:
+#                     #     print(f"Error converting text to integer: {e}")
+#                     #     continue
 
                     # Extract image link (if any)
                     image_link = ""
@@ -198,6 +261,8 @@ def scrape_tweets(url, filename):
         driver.quit()
 
 if __name__ == "__main__":
-    url = "https://x.com/DVAAus"  
+    url = "https://x.com/DVAAus"
     filename = 'X DVA.csv'
-    tweets = scrape_tweets(url, filename)
+    username = "nothing4816@gmail.com"  # Replace with your X.com username
+    password = "nothing1122@"  # Replace with your X.com password
+    tweets = scrape_tweets(url, filename, username, password)

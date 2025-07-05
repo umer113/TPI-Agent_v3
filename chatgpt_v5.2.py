@@ -256,8 +256,7 @@ def run_scraper(module_name, scraper_dir="scrapers"):
             with open(meta_json, "w") as f:
                 json.dump(top5, f, indent=2)
         except Exception as e:
-            # On failure, warn and proceed with full scrape
-            st.sidebar.warning(f"Top-5 fetch failed ({e}), running full scrape anyway.")
+            print(f"running full")
 
     # Run the actual scraper and detect any new CSVs
     before = {f for f in os.listdir() if f.lower().endswith(".csv")}
@@ -277,7 +276,7 @@ def run_scraper(module_name, scraper_dir="scrapers"):
             shutil.move(csv_file, dest)
             st.sidebar.success(f"New CSV: {csv_file}")
     else:
-        st.sidebar.info("No CSV produced.")
+        print("no csv produced")
 
 
 groq_model = "meta-llama/llama-4-scout-17b-16e-instruct"
@@ -521,8 +520,16 @@ def main():
     sel_file = st.sidebar.radio(f"Select one {focus_choice} CSV", options)
 
     # load the chosen file (add the extension back)
-    df = pd.read_csv(os.path.join(DATA_DIR, f"{sel_file}.csv"))
-
+    csv_path = os.path.join(DATA_DIR, f"{sel_file}.csv")
+    if os.path.exists(csv_path):
+        try:
+            df = pd.read_csv(csv_path)
+        except pd.errors.EmptyDataError:
+            st.error("❌ The CSV file exists but is empty or has no columns. Scraping may have failed or been blocked.")
+            st.stop()
+    else:
+        st.error("❌ CSV file not found.")
+        st.stop()
 
     chats = load_chats()
     options = ["🆕 New Article Thread"] + [

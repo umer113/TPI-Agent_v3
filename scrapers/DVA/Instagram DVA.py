@@ -1,4 +1,3 @@
-import os
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -8,13 +7,14 @@ from selenium.webdriver.support import expected_conditions as EC
 import time
 import pandas as pd
 
-CHROME_DRIVER_PATH = "/usr/bin/chromedriver"  # new path in Docker
+# Local path to chromedriver
+CHROME_DRIVER_PATH = "/usr/bin/chromedriver"
 
 USERNAME = "dvaausgov"
 URL = f"https://www.instagram.com/{USERNAME}/"
 
 options = Options()
-options.binary_location = os.environ.get("CHROME_BIN", "/usr/bin/chromium")
+options.binary_location = "/usr/bin/chromium"
 options.add_argument("--headless=new")
 options.add_argument("--disable-gpu")
 options.add_argument("--no-sandbox")
@@ -101,6 +101,6 @@ df.to_csv(f"Instagram DVA.csv", index=False)
 print(f"Saved {len(posts_data)} posts to {USERNAME}_posts.csv")
 
 driver.quit()
-# # Login with Instagram credentials (create a throwaway account if needed)
-# USERNAME = "notaspect372@gmail.com"
-# PASSWORD = "test1001!"
+# Login with Instagram credentials (create a throwaway account if needed)
+USERNAME = "notaspect372@gmail.com"
+PASSWORD = "test1001!"

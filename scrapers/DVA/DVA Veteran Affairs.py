@@ -38,15 +38,16 @@ common_cookies = {
 }
 
 proxies_list = [
-    '91.217.72.56:6785',
-    '103.37.181.190:6846',
-    '45.43.183.159:6471',
-    '64.137.18.245:6439',
-    '104.238.50.211:6757',
-    '89.249.192.133:6532',
-    '103.101.88.235:5959',
-    '145.223.45.130:6983',
-    '45.38.78.112:6049',
+    'http://beqcfgqd:zx2ta8sl24bs@91.217.72.56:6785',
+    'http://beqcfgqd:zx2ta8sl24bs@103.37.181.190:6846',
+    'http://beqcfgqd:zx2ta8sl24bs@45.43.183.159:6471',
+    'http://beqcfgqd:zx2ta8sl24bs@64.137.18.245:6439',
+    'http://beqcfgqd:zx2ta8sl24bs@104.238.50.211:6757',
+    'http://beqcfgqd:zx2ta8sl24bs@89.249.192.133:6532',
+    'http://beqcfgqd:zx2ta8sl24bs@103.101.88.235:5959',
+    'http://beqcfgqd:zx2ta8sl24bs@145.223.45.130:6983',
+    'http://beqcfgqd:zx2ta8sl24bs@45.38.78.112:6049',
+
 ]
 # List of proxies to rotate through
 def get_html(url):
