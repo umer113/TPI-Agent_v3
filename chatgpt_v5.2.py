@@ -691,7 +691,7 @@ def main():
     # Model selectbox above text input box
     raw_model = st.selectbox(
         "Model",
-        ["gpt-4o-mini", "Groq"],
+        ["gpt-4o", "Groq"],
         key="model_select"
     )
     model = raw_model if raw_model != "Groq" else "meta-llama/llama-4-scout-17b-16e-instruct"
