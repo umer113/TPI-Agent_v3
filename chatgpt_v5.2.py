@@ -286,6 +286,7 @@ groq_model = "meta-llama/llama-4-scout-17b-16e-instruct"
 
 async def ask_agent(csv_text: str, question: str, model: str, chat_history: list) -> str:
     use_groq = model.startswith("meta-llama/")
+
     try:
         encoding = tiktoken.encoding_for_model(model)
     except KeyError:
@@ -294,233 +295,76 @@ async def ask_agent(csv_text: str, question: str, model: str, chat_history: list
     def count_tokens(text: str) -> int:
         return len(encoding.encode(text))
 
-    # Enhanced context analysis
-    def analyze_context(question: str, history: list) -> dict:
-        """Analyze the question and chat history to understand context and intent"""
-        context = {
-            'is_followup': False,
-            'is_article': False,
-            'is_modification': False,
-            'last_response': None,
-            'modification_type': None,
-            'reference_keywords': []
-        }
-        
-        # Check for follow-up indicators
-        followup_indicators = [
-            'last response', 'previous response', 'above response', 'that response',
-            'modify', 'change', 'update', 'add', 'remove', 'edit', 'revise',
-            'same', 'keep everything', 'all the thing remain', 'everything else',
-            'but add', 'but include', 'except', 'only change'
-        ]
-        
-        question_lower = question.lower()
-        context['is_followup'] = any(indicator in question_lower for indicator in followup_indicators)
-        
-        # Check for modification requests
-        modification_keywords = {
-            'headline': ['headline', 'head line', 'title', 'heading'],
-            'subheadline': ['subheadline', 'sub headline', 'subtitle', 'sub title'],
-            'paragraph': ['paragraph', 'section', 'content'],
-            'format': ['format', 'formatting', 'structure'],
-            'length': ['longer', 'shorter', 'expand', 'condense', 'brief'],
-            'tone': ['tone', 'style', 'formal', 'casual', 'professional']
-        }
-        
-        for mod_type, keywords in modification_keywords.items():
-            if any(keyword in question_lower for keyword in keywords):
-                context['is_modification'] = True
-                context['modification_type'] = mod_type
-                context['reference_keywords'].extend(keywords)
-                break
-        
-        # Get last response from history
-        if history and len(history) > 0:
-            # Find the last assistant response
-            for item in reversed(history):
-                if isinstance(item, dict) and item.get('role') == 'assistant':
-                    context['last_response'] = item.get('content', '')
-                    break
-                elif isinstance(item, str) and item.strip():
-                    # If history is just strings, take the last non-empty one
-                    context['last_response'] = item
-                    break
-        
-        # Detect article requests
-        article_keywords = [
-            "write an article", "write a comprehensive article", "article", 
-            "newsletter", "newsletter article", "create an article"
-        ]
-        context['is_article'] = any(kw in question_lower for kw in article_keywords)
-        
-        # If it's a follow-up but not explicitly asking for an article, 
-        # check if the last response was an article
-        if context['is_followup'] and not context['is_article'] and context['last_response']:
-            # Check if last response follows article format
-            last_resp = context['last_response']
-            has_bold_title = last_resp.startswith('**') and '**' in last_resp[2:10]
-            has_multiple_paragraphs = last_resp.count('\n\n') >= 2
-            if has_bold_title and has_multiple_paragraphs:
-                context['is_article'] = True
-        
-        return context
-
-    # Analyze the current context
-    context = analyze_context(question, chat_history)
-
-    # Build system prompt with context awareness
-    if context['is_article']:
-        system_prompt = (
-            "You are a helpful and concise AI newsletter assistant for an Australian veterans' organization (TPI). "
-            "When the user requests a newsletter article or modifies an existing article, you MUST strictly follow this structure and formatting. "
-            "DO NOT deviate from this format under any circumstances.\n\n"
-            "**MANDATORY FORMAT REQUIREMENTS:**\n"
-            "1. Start with a short, clear, and relevant TITLE in bold (**text**) on its own line.(MUST PROVIDED)\n"
-            "2. Write a headline in bold — 1 to 2 sentences summarising what's new or important.(MUST PROVIDED) "
-            "   Do not label it as 'headline' — just place it directly beneath the title.\n"
-            "3. Write exactly 4 to 5 short paragraphs in plain text (no bold formatting). Each paragraph should have 3 to 5 sentences.\n"
-            "4. Use calm, clear, supportive language. Reference source names where relevant (e.g., DVA, AWM, The Pineapple Express).\n"
-            "5. Only use information that has been scraped or provided. Do not invent facts.\n"
-            "6. Focus on topics relevant to TPI members — such as policy changes, health support, community events, or benefits.\n"
-            "7. End with exactly one or two plain text follow-up questions. Do not bold or number these questions.\n\n"
-            "CONTEXT AWARENESS:\n"
-            "- If the user is asking to modify a previous response, use the previous content as a base and only change what they specifically request.\n"
-            "- If they say 'keep everything the same' or 'all the thing remain same', preserve the existing content and only add/modify the requested elements.\n"
-            "- Pay attention to phrases like 'add headline', 'change title', 'make it longer', etc.\n\n"
-            "IMPORTANT: Follow this format exactly. Do not add extra formatting, headers, or sections."
-        )
-    else:
-        system_prompt = (
-            "You are ChatGPT, a helpful assistant. Answer the user's question directly and concisely, "
-            "using the data if relevant. You may use simple markdown (lists, bold) but do NOT write an article. "
-            "End with one brief follow-up question as plain text (no #).\n\n"
-            "CONTEXT AWARENESS:\n"
-            "- If the user refers to a previous response, use that as context for your answer.\n"
-            "- If they're asking to modify something, focus only on the requested changes.\n"
-            "- Maintain consistency with previous responses unless explicitly asked to change something."
-        )
-
-    # Prepare CSV + question with context
-    lines = csv_text.split("\n")
+    # Combine CSV and question into prompt
+    lines = csv_text.strip().split("\n")
     header = lines[0] if lines else ""
     rows = lines[1:] if len(lines) > 1 else []
     body = "\n".join(rows)
-    
-    # Token budget calculation - GPT-4o mini has 128k context window
-    MODEL_MAX = 128000
-    HEADROOM = 2000  # More headroom for larger responses
-    
-    # Calculate context overhead
-    context_overhead = 0
-    if context['is_followup'] and context['last_response']:
-        context_overhead = count_tokens(f"Previous response: {context['last_response']}")
-    
-    static = count_tokens(system_prompt) + count_tokens(header) + count_tokens(f"\nUser asked: {question}\n") + context_overhead
-    usable = MODEL_MAX - HEADROOM - static
 
-    # Prepare final prompt with context
-    base_prompt = f"Here is a CSV dataset. Please analyze it and answer the question based only on its content.\nCSV:\n{header}\n"
-    
-    if count_tokens(body) <= usable:
-        csv_content = body
-    else:
-        avg_per_row = max(1, count_tokens("\n".join(rows)) // len(rows)) if rows else 1
-        max_rows = max(1, usable // avg_per_row)
-        csv_content = "\n".join(rows[:max_rows])
-    
-    final_prompt = base_prompt + csv_content + f"\n\nQuestion: {question}"
-    
-    # Add context information if this is a follow-up
-    if context['is_followup'] and context['last_response']:
-        final_prompt += f"\n\nPrevious response for context:\n{context['last_response']}"
-        
-        if context['is_modification']:
-            final_prompt += f"\n\nNote: The user is asking to modify the previous response. "
-            if context['modification_type']:
-                final_prompt += f"They specifically want to modify the {context['modification_type']}. "
-            final_prompt += "Keep all other content the same unless explicitly asked to change it."
+    MODEL_MAX = 128000 if "gpt-4" in model else 4096
+    HEADROOM = 2000  # Buffer for response
 
-    # Example article for consistency
-    example_article = (
-        "**Supporting Veterans Through New Legislation**\n"
-        "**Parliament passes new measures aimed at improving health care access and post-service support for veterans.**\n\n"
-        "Veterans across Australia can expect improved support with the introduction of new legislation passed this month. "
-        "These changes, led by the Department of Veterans' Affairs (DVA), focus on strengthening healthcare services and long-term welfare programs. "
-        "They reflect ongoing efforts to ensure that veterans and their families are receiving the support they need.\n\n"
-        "New initiatives include expanded mental health services, a streamlined claims process, and increased funding for veteran wellbeing. "
-        "These are part of DVA's broader commitment to putting veterans first and improving access to quality care.\n\n"
-        "Veterans are encouraged to explore the new services available, attend upcoming community information sessions, and provide feedback to shape future improvements.\n\n"
-        "Have you accessed any of these services yet?\n"
-        "What additional support would you like to see introduced?"
+    static_tokens = count_tokens(header) + count_tokens(question)
+    usable = MODEL_MAX - HEADROOM - static_tokens
+
+    avg_per_row = max(1, count_tokens("\n".join(rows)) // len(rows)) if rows else 1
+    max_rows = max(1, usable // avg_per_row)
+    csv_content = "\n".join(rows[:max_rows])
+
+    final_prompt = (
+        f"Here is a CSV dataset. Please analyze it and answer the question.
+"
+        f"CSV:
+{header}\n{csv_content}\n\n"
+        f"Question: {question}"
     )
 
     async def send_openai(prompt: str) -> str:
         client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        messages = [
-            {"role": "system", "content": system_prompt}
-        ]
-        
-        # Add chat history for context (last 20 exchanges for better context)
+        messages = []
+
         if chat_history:
-            recent_history = chat_history[-40:]  # Last 20 exchanges (user + assistant pairs)
-            for item in recent_history:
+            for item in chat_history[-40:]:
                 if isinstance(item, dict) and 'role' in item and 'content' in item:
                     messages.append({"role": item['role'], "content": item['content']})
-        
-        # Add example for article requests
-        if context['is_article'] and not context['is_followup']:
-            messages.extend([
-                {"role": "user", "content": "Write an article about veterans' support legislation."},
-                {"role": "assistant", "content": example_article}
-            ])
-        
+
         messages.append({"role": "user", "content": prompt})
 
         resp = await client.chat.completions.create(
             model=model,
             messages=messages,
-            temperature=0.1,
-            max_tokens=4000  # Increased for longer responses
+            temperature=0.7,
+            max_tokens=4000
         )
         return resp.choices[0].message.content.strip()
 
     async def send_groq(prompt: str) -> str:
         def sync():
             client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-            messages = [
-                {"role": "system", "content": system_prompt}
-            ]
-            
-            # Add chat history for context
+            messages = []
+
             if chat_history:
-                recent_history = chat_history[-40:]  # Last 20 exchanges
-                for item in recent_history:
+                for item in chat_history[-40:]:
                     if isinstance(item, dict) and 'role' in item and 'content' in item:
                         messages.append({"role": item['role'], "content": item['content']})
-            
-            # Add example for article requests
-            if context['is_article'] and not context['is_followup']:
-                messages.extend([
-                    {"role": "user", "content": "Write an article about veterans' support legislation."},
-                    {"role": "assistant", "content": example_article}
-                ])
-            
+
             messages.append({"role": "user", "content": prompt})
 
             resp = client.chat.completions.create(
                 model=model,
                 messages=messages,
-                temperature=0.1,
-                max_tokens=4000  # Increased for longer responses
+                temperature=0.7,
+                max_tokens=4000
             )
             return resp.choices[0].message.content.strip()
+
         return await asyncio.to_thread(sync)
 
-    # Execute the request
     if use_groq:
         return await send_groq(final_prompt)
     else:
         return await send_openai(final_prompt)
+
 
     
 def create_docx(content: str) -> BytesIO:
