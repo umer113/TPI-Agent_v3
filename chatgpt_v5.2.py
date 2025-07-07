@@ -295,14 +295,13 @@ async def ask_agent(csv_text: str, question: str, model: str, chat_history: list
     def count_tokens(text: str) -> int:
         return len(encoding.encode(text))
 
-    # Combine CSV and question into prompt
     lines = csv_text.strip().split("\n")
     header = lines[0] if lines else ""
     rows = lines[1:] if len(lines) > 1 else []
     body = "\n".join(rows)
 
     MODEL_MAX = 128000 if "gpt-4" in model else 4096
-    HEADROOM = 2000  # Buffer for response
+    HEADROOM = 2000
 
     static_tokens = count_tokens(header) + count_tokens(question)
     usable = MODEL_MAX - HEADROOM - static_tokens
@@ -312,8 +311,8 @@ async def ask_agent(csv_text: str, question: str, model: str, chat_history: list
     csv_content = "\n".join(rows[:max_rows])
 
     system_prompt = (
-        "You are a helpful assistant who writes responses in a natural, human-like tone, "
-        "similar to ChatGPT. When asked for an article or summary, you write like a professional "
+        "You are ChatGPT, a helpful assistant who writes responses in a natural, human-like tone, "
+        "similar to the ChatGPT web app. When asked for an article or summary, you write like a professional "
         "journalist — structured, well-written, and engaging. If the prompt mentions 'The Digger' or "
         "'Breaking the Broken Narrative', adopt an investigative, bold tone like a watchdog publication."
     )
@@ -330,13 +329,12 @@ Question: {question}"""
 
     async def send_openai(prompt: str) -> str:
         client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        messages = []
+        messages = [{"role": "system", "content": system_prompt}]
 
         if chat_history:
             for item in chat_history[-40:]:
                 if isinstance(item, dict) and 'role' in item and 'content' in item:
                     messages.append({"role": item['role'], "content": item['content']})
-        messages.append({"role": "user", "content": prompt})
 
         messages.append({"role": "user", "content": prompt})
 
@@ -351,7 +349,7 @@ Question: {question}"""
     async def send_groq(prompt: str) -> str:
         def sync():
             client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-            messages = []
+            messages = [{"role": "system", "content": system_prompt}]
 
             if chat_history:
                 for item in chat_history[-40:]:
@@ -374,6 +372,7 @@ Question: {question}"""
         return await send_groq(user_prompt)
     else:
         return await send_openai(user_prompt)
+
 
 
     
