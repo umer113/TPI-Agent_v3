@@ -311,12 +311,22 @@ async def ask_agent(csv_text: str, question: str, model: str, chat_history: list
     max_rows = max(1, usable // avg_per_row)
     csv_content = "\n".join(rows[:max_rows])
 
-    final_prompt = f"""Here is a CSV dataset. Please analyze it and answer the question.
-    CSV:
-    {header}
-    {csv_content}
-    
-    Question: {question}"""
+    system_prompt = (
+        "You are a helpful assistant who writes responses in a natural, human-like tone, "
+        "similar to ChatGPT. When asked for an article or summary, you write like a professional "
+        "journalist — structured, well-written, and engaging. If the prompt mentions 'The Digger' or "
+        "'Breaking the Broken Narrative', adopt an investigative, bold tone like a watchdog publication."
+    )
+
+    user_prompt = f"""Here is a CSV dataset and a question.
+If the question asks for an article, write it in natural tone, formatted well.
+If the question references “The Digger” or “Breaking the Broken Narrative”, use bold, journalistic style.
+
+CSV:
+{header}
+{csv_content}
+
+Question: {question}"""
 
     async def send_openai(prompt: str) -> str:
         client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -326,6 +336,7 @@ async def ask_agent(csv_text: str, question: str, model: str, chat_history: list
             for item in chat_history[-40:]:
                 if isinstance(item, dict) and 'role' in item and 'content' in item:
                     messages.append({"role": item['role'], "content": item['content']})
+        messages.append({"role": "user", "content": prompt})
 
         messages.append({"role": "user", "content": prompt})
 
@@ -360,9 +371,9 @@ async def ask_agent(csv_text: str, question: str, model: str, chat_history: list
         return await asyncio.to_thread(sync)
 
     if use_groq:
-        return await send_groq(final_prompt)
+        return await send_groq(user_prompt)
     else:
-        return await send_openai(final_prompt)
+        return await send_openai(user_prompt)
 
 
     
