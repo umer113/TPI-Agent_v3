@@ -311,13 +311,12 @@ async def ask_agent(csv_text: str, question: str, model: str, chat_history: list
     max_rows = max(1, usable // avg_per_row)
     csv_content = "\n".join(rows[:max_rows])
 
-    final_prompt = (
-        f"Here is a CSV dataset. Please analyze it and answer the question.
-"
-        f"CSV:
-{header}\n{csv_content}\n\n"
-        f"Question: {question}"
-    )
+    final_prompt = f"""Here is a CSV dataset. Please analyze it and answer the question.
+    CSV:
+    {header}
+    {csv_content}
+    
+    Question: {question}"""
 
     async def send_openai(prompt: str) -> str:
         client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
