@@ -609,7 +609,8 @@ def main():
     model = raw_model if raw_model != "Groq" else "meta-llama/llama-4-scout-17b-16e-instruct"
 
     with st.form("chat_form", clear_on_submit=True):
-        query = st.text_input("Ask anything—article, summary, insight…", value=st.session_state.get("query", ""), key="query")
+        query = st.text_input("Ask anything—article, summary, insight…", key="query")
+
 
         submitted = st.form_submit_button("Ask Agent")
         if submitted and query:
