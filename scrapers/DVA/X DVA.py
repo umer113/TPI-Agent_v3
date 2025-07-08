@@ -16,65 +16,71 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 
-def init_driver():
+def init_driver(driver_path=r"/usr/bin/chromedriver"):  # ← replace with your actual path
     chrome_options = Options()
-    chrome_options.binary_location = "/usr/bin/chromium"  # ✅ Chrome browser binary
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36")
 
-    service = Service("/usr/bin/chromedriver")  # ✅ Static path to ChromeDriver
+    service = Service(driver_path)
     driver = webdriver.Chrome(service=service, options=chrome_options)
     return driver
 
 # Login to X.com
-def login_to_x(driver, username, password):
+def login_to_x(driver, email, username, password):
     try:
         driver.get("https://x.com/login")
-        
-        # Wait for username field
+
+        # Wait for the first input (email)
         WebDriverWait(driver, 30).until(
             EC.presence_of_element_located((By.NAME, "text"))
         )
-        
-        # Enter username
+        email_field = driver.find_element(By.NAME, "text")
+        email_field.send_keys(email)
+
+        # Click Next button
+        next_button = driver.find_element(By.XPATH, "//span[text()='Next']")
+        next_button.click()
+
+        # Wait for the second input (username)
+        WebDriverWait(driver, 30).until(
+            EC.presence_of_element_located((By.NAME, "text"))
+        )
         username_field = driver.find_element(By.NAME, "text")
         username_field.send_keys(username)
-        
-        # Click Next button
-        next_button = driver.find_element(By.XPATH, "//span[contains(text(), 'Next')]")
+
+        # Click Next again
+        next_button = driver.find_element(By.XPATH, "//span[text()='Next']")
         next_button.click()
-        
-        # Wait for password field
+
+        # Wait for the password field
         WebDriverWait(driver, 30).until(
             EC.presence_of_element_located((By.NAME, "password"))
         )
-        
-        # Enter password
         password_field = driver.find_element(By.NAME, "password")
         password_field.send_keys(password)
-        
-        # Click Login button
-        login_button = driver.find_element(By.XPATH, "//span[contains(text(), 'Log in')]")
+
+        # Click Log in button
+        login_button = driver.find_element(By.XPATH, "//span[text()='Log in']")
         login_button.click()
-        
-        # Wait for successful login by checking for home page or profile element
+
+        # Wait for home page element to confirm login
         WebDriverWait(driver, 30).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "nav[aria-label='Primary']"))
         )
-        print("Successfully logged in to X.com")
+        print("✅ Successfully logged in to X.com")
         return True
-        
+
     except TimeoutException:
-        print("Timeout during login process")
+        print("❌ Timeout during login process")
         return False
     except NoSuchElementException as e:
-        print(f"Error finding login elements: {e}")
+        print(f"❌ Element not found during login: {e}")
         return False
     except Exception as e:
-        print(f"Error during login: {e}")
+        print(f"❌ Unexpected error during login: {e}")
         return False
 
 # Extract emojis from text
@@ -106,11 +112,11 @@ def append_to_csv(data, filename):
     print(f"Appended {len(data)} posts to {filename}")
 
 # Scrape tweets after login
-def scrape_tweets(url, filename, username, password):
+def scrape_tweets(url, filename, email,username, password):
     driver = init_driver()
     try:
         # Perform login
-        if not login_to_x(driver, username, password):
+        if not login_to_x(driver, email,username, password):
             print("Login failed. Cannot proceed with scraping.")
             return []
 
@@ -263,6 +269,7 @@ def scrape_tweets(url, filename, username, password):
 if __name__ == "__main__":
     url = "https://x.com/DVAAus"
     filename = 'X DVA.csv'
-    username = "nothing4816@gmail.com"  # Replace with your X.com username
-    password = "nothing1122@"  # Replace with your X.com password
-    tweets = scrape_tweets(url, filename, username, password)
+    email = "nothing4816@gmail.com"  # Replace with your X.com username
+    password = "nothing123@" 
+    username = "Nothing023189" # Replace with your X.com password
+    tweets = scrape_tweets(url, filename, email ,username, password)
