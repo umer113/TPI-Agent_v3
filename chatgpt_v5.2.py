@@ -363,6 +363,9 @@ Question: {question}
                 messages.append({"role": item['role'], "content": item['content']})
     messages.append({"role": "user", "content": user_prompt})
 
+
+    
+
     # ——— Model Calls ———
     async def send_openai() -> str:
         client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -579,8 +582,9 @@ def main():
     )
     model = raw_model if raw_model != "Groq" else "meta-llama/llama-4-scout-17b-16e-instruct"
 
-    with st.form("chat_form", clear_on_submit=False):
-        query = st.text_input("Ask anything—article, summary, insight…", key="query")
+    with st.form("chat_form", clear_on_submit=True):
+        query = st.text_input("Ask anything—article, summary, insight…", value=st.session_state.get("query", ""), key="query")
+
         submitted = st.form_submit_button("Ask Agent")
         if submitted and query:
             st.session_state.chat_history.append({"role": "user", "content": query})
@@ -600,6 +604,7 @@ def main():
                 title=chat_title
             )
             st.session_state.chat_id = new_id
+            
             try:
                 st.experimental_rerun()
             except AttributeError:
