@@ -502,7 +502,19 @@ def main():
     sel_file = st.sidebar.radio(f"Select one {focus_choice} CSV", options)
 
     # load the chosen file (add the extension back)
+    if "last_csv_selected" not in st.session_state:
+        st.session_state["last_csv_selected"] = None
+
+
     csv_path = os.path.join(DATA_DIR, f"{sel_file}.csv")
+
+
+    if sel_file != st.session_state["last_csv_selected"]:
+        st.session_state["chat_id"] = None
+        st.session_state["chat_history"] = []
+        st.session_state["new_chat_title"] = None
+        st.session_state["last_csv_selected"] = sel_file
+
     if os.path.exists(csv_path):
         try:
             df = pd.read_csv(csv_path)
