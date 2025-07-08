@@ -367,16 +367,123 @@ Question: {question}
     
 
     # ——— Model Calls ———
+async def ask_agent(csv_text: str, question: str, model: str, chat_history: list) -> str:
+    import os
+    import tiktoken
+    from openai import AsyncOpenAI
+    from groq import Groq
+    import asyncio
+
+    use_groq = model.startswith("meta-llama/")
+
+    try:
+        encoding = tiktoken.encoding_for_model(model)
+    except KeyError:
+        encoding = tiktoken.get_encoding("p50k_base" if use_groq else "cl100k_base")
+
+    def count_tokens(text: str) -> int:
+        return len(encoding.encode(text))
+
+    lines = csv_text.strip().split("\n")
+    header = lines[0] if lines else ""
+    rows = lines[1:] if len(lines) > 1 else []
+
+    MODEL_MAX = 128000 if "gpt-4" in model else 4096
+    HEADROOM = 2000
+    static_tokens = count_tokens(header) + count_tokens(question)
+    usable = MODEL_MAX - HEADROOM - static_tokens
+
+    avg_per_row = max(1, count_tokens("\n".join(rows)) // len(rows)) if rows else 1
+    max_rows = max(1, usable // avg_per_row)
+    csv_content = "\n".join(rows[:max_rows])
+
+    # ✅ Enhanced system prompt with behavior + examples
+    system_prompt = (
+        "You are TPI-AI, a bold and intelligent assistant trained to behave like ChatGPT but act with the voice of an investigative journalist when asked. "
+        "You help the user extract insight from CSV data, write bold articles, and respond naturally like a human. You use formatting (like headings, emojis, bullet points) to keep content engaging and readable. "
+        "You NEVER reuse examples below in your final output — you must ALWAYS use the current dataset passed in the prompt."
+
+        "\n\nEXAMPLES OF HOW YOU RESPOND (DO NOT COPY DATA):\n"
+
+        "User: Write a TPI newsletter article in the spirit of ‘Breaking the Broken Narrative’\n"
+        "Assistant:\n"
+        "🪓 Breaking the Broken Narrative: Who’s Benefiting From the ‘Housing Crisis’?\n"
+        "By The Property Investigator (TPI) — July 2025\n\n"
+        "Let’s talk about the 'housing crisis'. Again. Because apparently, repeating it like a mantra is easier than asking the real question:\n**Crisis for whom?**\n\n"
+        "Vacant units, investor portfolios, and ‘affordable’ listings that no average earner can touch — the numbers don't lie. And we’re here to pull them apart."
+
+        "\n\nUser: Summarize the CSV into key findings.\n"
+        "Assistant: Sure. Here's what stands out based on the data:\n"
+        "• Over 70% of listings stayed on the market longer than 60 days.\n"
+        "• Average price per sqm increased 18% vs last quarter.\n"
+        "• The term 'affordable' was applied to listings priced 2x above median income.\n\n"
+        "⚠️ NOTE: These are just format examples. Use ONLY the CSV data provided with each prompt."
+
+        "\n\nUser: Rewrite this paragraph in a snappier tone.\n"
+        "Assistant: Absolutely. Here's the tightened version with punchier rhythm..."
+
+        "\n\nYour task: use the current CSV below to write an article, summary, or insight based on the user's request. Do NOT use the example values above in your output."
+
+        "\n\nCurrent date: July 2025\nKnowledge cutoff: June 2024"
+    )
+
+    # 👤 Final user message: includes actual CSV
+    user_prompt = f"""
+Here is the dataset and question.
+
+CSV:
+{header}
+{csv_content}
+
+Question: {question}
+"""
+
+    # 🔁 Full chat message array
+    messages = [{"role": "system", "content": system_prompt}]
+    if chat_history:
+        for item in chat_history[-40:]:
+            if isinstance(item, dict) and 'role' in item and 'content' in item:
+                messages.append({"role": item['role'], "content": item['content']})
+    messages.append({"role": "user", "content": user_prompt})
+
+
+    
+
+    # ——— Model Calls ———
     async def send_openai() -> str:
         client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+        # Add tool if using search-preview model
+        use_search_tool = "search-preview" in model
+        extra_args = {"tools": [{"type": "web_search"}]} if use_search_tool else {}
+
         resp = await client.chat.completions.create(
             model=model,
             messages=messages,
             temperature=0.7 if "article" in question.lower() else 0.1,
             top_p=0.95 if "article" in question.lower() else 0.1,
-            max_tokens=4000
+            max_tokens=4000,
+            **extra_args  # ⬅️ Web search tool injected here
         )
         return resp.choices[0].message.content.strip()
+
+
+    async def send_groq() -> str:
+        def sync():
+            client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+            resp = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=0.7 if "article" in question.lower() else 0.1,
+                top_p=0.95 if "article" in question.lower() else 0.1,
+                max_tokens=4000
+            )
+            return resp.choices[0].message.content.strip()
+        return await asyncio.to_thread(sync)
+
+    return await send_groq() if use_groq else await send_openai()
+
+
 
     async def send_groq() -> str:
         def sync():
@@ -458,12 +565,11 @@ def main():
             "DVA Website Home",
             "DVA Website Latest News",
             "X DVA",
-            # "Instagram DVA"
+            "Instagram DVA"
         ],
         "AWM": [
             "articles",
             "X AWM",
-            # "Instagram AWM"
         ],
         "RMA": [
             "RMA",
