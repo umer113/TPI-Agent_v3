@@ -325,21 +325,23 @@ async def ask_agent(csv_text: str, question: str, model: str, chat_history: list
     "In all other cases (like summaries or quick insights), you reply cleanly with minimal formatting."
 
     "\n\n🧠 Behavior Rules:\n"
-    "• If the user prompt contains 'article', 'newsletter', or 'in TPI style', you MUST:\n"
-    "   – Start with: `# 📌 TITLE` (or a fitting emoji)\n"
-    "   – Add a bold subheading under the main title\n"
-    "   – Use `##` subheadings for structure (use only when helpful, not overused)\n"
-    "   – Use *italics* for tone, rhythm, or emphasis (moderately)\n"
-    "   – End with a strong closing line — either a reflection or call to action\n"
-    "   – Mention SA-specific angles if relevant\n"
-    "   – Add helpful links when mentioned, like: [Apply here](https://example.gov.au)\n"
-    "   – Keep total article length between 300 and 500 words\n"
+    "• If the user prompt contains 'article', 'newsletter', or 'in TPI style', you MUST follow this strict article structure:\n"
+    "   – Start with a large `#` heading that includes a fitting emoji and clear title (e.g. `# 🇦🇺 Honouring History and Building Futures`)\n"
+    "   – Add a **bold sentence-style subheading** directly beneath the title\n"
+    "   – Write a short, italicised intro paragraph that sets the tone and highlights key themes like *honour the past* or *build the future*\n"
+    "   – Use `##` subheadings for each major event or topic section (minimum of two is expected)\n"
+    "   – Write full narrative-style body text under each section (not bullets)\n"
+    "   – Use *italics* and **bold** selectively for rhythm and emphasis\n"
+    "   – End the article with a strong closing line — either a reflection or call to action\n"
+    "   – Mention SA-specific examples if relevant\n"
+    "   – Add helpful inline links if referenced (e.g., [Apply here](https://example.gov.au))\n"
+    "   – Total article length must be between 300 and 500 words\n"
 
-    "• If the user prompt does **not** contain 'article', 'newsletter', or 'TPI style', format as summary or recap:\n"
-    "   – Do **not** use article-style headings (no `#`, `##`, title, or intro)\n"
-    "   – Use bolded inline labels for clarity (e.g., **Title:**)\n"
-    "   – Use bullet points or numbered lists when summarizing updates\n"
-    "   – Be concise, clean, and professional — not blog-style\n"
+    "• If the user prompt does **not** contain 'article', 'newsletter', or 'TPI style', respond in summary format:\n"
+    "   – Do **not** use article headings (no `#`, no large title or intro)\n"
+    "   – Use **bolded inline section headers** for clarity\n"
+    "   – Present updates using clean bullet points or numbered lists\n"
+    "   – Be clear, scannable, and professional — avoid long paragraphs or narrative tone\n"
 
     "\n\n📝 Revision Rules:\n"
     "• Only revise the parts the user requested (e.g. 'make heading bold', 'shorten this')\n"
@@ -354,11 +356,11 @@ async def ask_agent(csv_text: str, question: str, model: str, chat_history: list
     "Assistant:\n"
     "# 🛡 Expanding Support: $4.8M Boost for Veteran Advocacy\n"
     "**New funding announced for ex-service organisations across Australia**\n"
-    "In a powerful move to strengthen veteran support services, the Department of Veterans' Affairs has launched...\n\n"
+    "*In a powerful move to strengthen veteran support services, the Department of Veterans' Affairs has launched...*\n\n"
     "## What’s Available?\n"
-    "• $4.8 million in funding\n"
-    "• Applications close 28 April 2025\n"
-    "• Grants assist in claims, legal support, and advocacy training\n\n"
+    "The government has announced $4.8 million in funding through the BEST Grants Program to help veteran organisations...\n\n"
+    "## How to Apply\n"
+    "Applications close on 28 April 2025. Grants cover legal support, advocacy training, and assistance with claims...\n\n"
     "*Let’s honour their legacy by amplifying their voice.*"
 
     "\nUser: Summarize key veteran updates\n"
@@ -371,12 +373,6 @@ async def ask_agent(csv_text: str, question: str, model: str, chat_history: list
 
     "\n\nCurrent date: July 2025\nKnowledge cutoff: June 2024"
 )
-
-
-
-
-
-
 
     # 👤 Final user message: includes actual CSV
     user_prompt = f"""
