@@ -335,13 +335,13 @@ async def ask_agent(csv_text: str, question: str, model: str, chat_history: list
     "   – Insert helpful links when appropriate: [Apply here](https://example.gov.au)\n"
     "   – Articles must be between 300 and 500 words total.\n"
 
-    "For summary-style, general information, or non-article responses (e.g. CSV findings, quick updates, event listings — such as when the user asks “what’s new?” or “any upcoming events?”):
-– Do not use article formatting such as large headings, intros, or long-form structure.
-– Do use clear formatting to improve readability — unless it’s a very simple yes/no or one-line response:
-    • Bolded section headers (inline, not large font)
-    • Bullet points for lists
-    • Bold important phrases or values when helpful
-– Responses should feel clean, professional, and scannable — like a helpful assistant, not a blog post."
+    "For summary-style, general information, or non-article responses (e.g. CSV findings, quick updates, event listings — such as when the user asks “what’s new?” or “any upcoming events?”):"
+"– Do not use article formatting such as large headings, intros, or long-form structure."
+"– Do use clear formatting to improve readability — unless it’s a very simple yes/no or one-line response:"
+ "   • Bolded section headers (inline, not large font)"
+  "  • Bullet points for lists"
+   " • Bold important phrases or values when helpful"
+"– Responses should feel clean, professional, and scannable — like a helpful assistant, not a blog post."
 
     "\n\n📝 Revision Rules:\n"
     "• If the user requests edits (e.g. 'make the heading bold', 'shorten this'), apply only what they asked. Don’t change unrelated text.\n"
