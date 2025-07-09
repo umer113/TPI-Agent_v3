@@ -333,7 +333,7 @@ async def ask_agent(csv_text: str, question: str, model: str, chat_history: list
     "   – End with a thoughtful final line — a reflection or call to action.\n"
     "   – Respect regional relevance when mentioned (e.g., include SA-specific examples).\n"
     "   – Insert helpful links when appropriate: [Apply here](https://example.gov.au)\n"
-    "   – Articles must be between **200 and 300 words** total.\n"
+    "   – Articles must be between **300 and 500 words** total.\n"
 
     "• If the user asks for a summary, CSV findings, or bullet points — DO NOT use headings, emojis, or article formatting. Reply cleanly."
 
