@@ -515,13 +515,13 @@ def main():
                 "DVA Website About",
                 "DVA Website Home",
                 "DVA Website Latest News",
-                "X DVA",
-                "Instagram DVA"
+                # "X DVA",
+                # "Instagram DVA"
             ],
             "Australian War Memorial (AWM)": [
                 "articles",
-                "X AWM",
-                "Instagram AWM"
+                # "X AWM",
+                # "Instagram AWM"
             ],
             "Repatriation Medical Authority (RMA)": [
                 "RMA",
