@@ -415,6 +415,9 @@ def create_docx(content: str) -> BytesIO:
 
 
 def main():
+
+    st.set_page_config(page_title="TPI Overwatch")
+    
     st.markdown("""
     <style>
       .user-message {
