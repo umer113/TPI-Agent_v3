@@ -480,7 +480,7 @@ def main():
     """, unsafe_allow_html=True)
 
 
-    st.title("🕸️ TPI Overwatch AI")
+    st.title("🕸️ TPI Overwatch")
 
     if "query" not in st.session_state:
         st.session_state["query"] = ""
