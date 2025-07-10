@@ -56,7 +56,7 @@ TOP5_SELECTORS = {
 
     "X DVA" : None,
 
-    # "Instagram AWM": None,
+    "Instagram AWM": None,
 
     "Instagram DVA":None,
 
@@ -284,9 +284,6 @@ groq_model = "meta-llama/llama-4-scout-17b-16e-instruct"
 
 
 
-
-
-    # ——— Model Calls ———
 async def ask_agent(csv_text: str, question: str, model: str, chat_history: list) -> str:
     import os
     import tiktoken
@@ -319,60 +316,33 @@ async def ask_agent(csv_text: str, question: str, model: str, chat_history: list
 
     # ✅ Enhanced system prompt with behavior + examples
     system_prompt = (
-    "You are TPI Overwatch AI, a helpful, consistent, and context-aware assistant developed for The Totally and Permanently Incapacitated ex-Service Men and Women’s Association (TPI), a volunteer-led group and the voice for South Australian veterans who have been totally and permanently disabled as a result of their service with the Australian Defence Force. "
-    "You write and revise newsletter articles, summaries, and insights for a veteran-focused audience. "
-    "You respond in a natural, conversational tone — and only use TPI-style formatting when the user asks for an **article**, **newsletter**, or says 'in the style of TPI'. "
-    "In all other cases (like summaries or quick insights), you reply cleanly with minimal formatting."
+        "You are TPI-AI, a bold and intelligent assistant trained to behave like ChatGPT but act with the voice of an investigative journalist when asked. "
+        "You help the user extract insight from CSV data, write bold articles, and respond naturally like a human. You use formatting (like headings, emojis, bullet points) to keep content engaging and readable. "
+        "You NEVER reuse examples below in your final output — you must ALWAYS use the current dataset passed in the prompt."
 
-    "\n\n🧠 Behavior Rules:\n"
-    "• If the user prompt contains 'article', 'newsletter', or 'in TPI style', you MUST follow this strict article structure:\n"
-    "   – Start with a large `#` heading that includes a fitting emoji and clear title (e.g. `# 🇦🇺 Honouring History and Building Futures`)\n"
-    "   – Add a **bold sentence-style subheading** directly beneath the title\n"
-    "   – Write a short, italicised intro paragraph that sets the tone and highlights key themes like *honour the past* or *build the future*\n"
-    "   – Use `##` subheadings for each major event or topic section (minimum of two is expected)\n"
-    "   – Write full narrative-style body text under each section (not bullets)\n"
-    "   – Use *italics* and **bold** selectively for rhythm and emphasis\n"
-    "   – End the article with a strong closing line — either a reflection or call to action\n"
-    "   – Mention SA-specific examples if relevant\n"
-    "   – Add helpful inline links if referenced (e.g., [Apply here](https://example.gov.au))\n"
-    "   – Total article length must be between 300 and 500 words\n"
+        "\n\nEXAMPLES OF HOW YOU RESPOND (DO NOT COPY DATA):\n"
 
-    "• If the user prompt does **not** contain 'article', 'newsletter', or 'TPI style', respond in summary format:\n"
-    "   – Do **not** use article headings (no `#`, no large title or intro)\n"
-    "   – Use **bolded inline section headers** for clarity\n"
-    "   – Present updates using clean bullet points or numbered lists\n"
-    "   – Be clear, scannable, and professional — avoid long paragraphs or narrative tone\n"
+        "User: Write a TPI newsletter article in the spirit of ‘Breaking the Broken Narrative’\n"
+        "Assistant:\n"
+        "🪓 Breaking the Broken Narrative: Who’s Benefiting From the ‘Housing Crisis’?\n"
+        "By The Property Investigator (TPI) — July 2025\n\n"
+        "Let’s talk about the 'housing crisis'. Again. Because apparently, repeating it like a mantra is easier than asking the real question:\n**Crisis for whom?**\n\n"
+        "Vacant units, investor portfolios, and ‘affordable’ listings that no average earner can touch — the numbers don't lie. And we’re here to pull them apart."
 
-    "\n\n📝 Revision Rules:\n"
-    "• Only revise the parts the user requested (e.g. 'make heading bold', 'shorten this')\n"
-    "• Return the full updated version (title, subheading, and body)\n"
-    "• Respect tone/style requests (e.g. 'friendlier', 'more concise')\n"
-    "• Apply multiple edits if asked\n"
-    "• Ask for clarification if instructions are vague"
+        "\n\nUser: Summarize the CSV into key findings.\n"
+        "Assistant: Sure. Here's what stands out based on the data:\n"
+        "• Over 70% of listings stayed on the market longer than 60 days.\n"
+        "• Average price per sqm increased 18% vs last quarter.\n"
+        "• The term 'affordable' was applied to listings priced 2x above median income.\n\n"
+        "⚠️ NOTE: These are just format examples. Use ONLY the CSV data provided with each prompt."
 
-    "\n\n📋 Examples (FORMAT ONLY — DO NOT COPY CONTENT):\n"
+        "\n\nUser: Rewrite this paragraph in a snappier tone.\n"
+        "Assistant: Absolutely. Here's the tightened version with punchier rhythm..."
 
-    "\nUser: Write a TPI newsletter article about a new support program\n"
-    "Assistant:\n"
-    "# 🛡 Expanding Support: $4.8M Boost for Veteran Advocacy\n"
-    "**New funding announced for ex-service organisations across Australia**\n"
-    "*In a powerful move to strengthen veteran support services, the Department of Veterans' Affairs has launched...*\n\n"
-    "## What’s Available?\n"
-    "The government has announced $4.8 million in funding through the BEST Grants Program to help veteran organisations...\n\n"
-    "## How to Apply\n"
-    "Applications close on 28 April 2025. Grants cover legal support, advocacy training, and assistance with claims...\n\n"
-    "*Let’s honour their legacy by amplifying their voice.*"
+        "\n\nYour task: use the current CSV below to write an article, summary, or insight based on the user's request. Do NOT use the example values above in your output."
 
-    "\nUser: Summarize key veteran updates\n"
-    "Assistant:\n"
-    "**Honouring Our Korean War Veterans** – Marks 75 years since Australia’s involvement.\n"
-    "**Employment Awards** – Nominations open for 2025.\n"
-    "**Grants Program** – $3.5M in community funding available.\n"
-    "**Financial Boost** – Over 150,000 veterans to receive increased compensation.\n"
-    "**Advocacy Support** – $4.8M in BEST grants for ex-service organisations.\n"
-
-    "\n\nCurrent date: July 2025\nKnowledge cutoff: June 2024"
-)
+        "\n\nCurrent date: July 2025\nKnowledge cutoff: June 2024"
+    )
 
     # 👤 Final user message: includes actual CSV
     user_prompt = f"""
@@ -432,23 +402,6 @@ Question: {question}
 
 
 
-    async def send_groq() -> str:
-        def sync():
-            client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-            resp = client.chat.completions.create(
-                model=model,
-                messages=messages,
-                temperature=0.7 if "article" in question.lower() else 0.1,
-                top_p=0.95 if "article" in question.lower() else 0.1,
-                max_tokens=4000
-            )
-            return resp.choices[0].message.content.strip()
-        return await asyncio.to_thread(sync)
-
-    return await send_groq() if use_groq else await send_openai()
-
-
-
 
     
 def create_docx(content: str) -> BytesIO:
@@ -462,9 +415,6 @@ def create_docx(content: str) -> BytesIO:
 
 
 def main():
-
-    st.set_page_config(page_title="TPI Overwatch")
-    
     st.markdown("""
     <style>
       .user-message {
@@ -499,8 +449,7 @@ def main():
     """, unsafe_allow_html=True)
 
 
-
-    st.title("🕸️ TPI Overwatch")
+    st.title("🕸️ TPI Overwatch AI")
 
     if "query" not in st.session_state:
         st.session_state["query"] = ""
@@ -508,26 +457,25 @@ def main():
     st.sidebar.image("logo.png", width=200)
 
     source_groups = {
-            "Department of Veteran Affairs (DVA)": [
-                "DVA Minister",
-                "DVA Veteran Affairs",
-                "DVA Repatriation Commission",
-                "DVA Website About",
-                "DVA Website Home",
-                "DVA Website Latest News",
-                # "X DVA",
-                # "Instagram DVA"
-            ],
-            "Australian War Memorial (AWM)": [
-                "articles",
-                # "X AWM",
-                # "Instagram AWM"
-            ],
-            "Repatriation Medical Authority (RMA)": [
-                "RMA",
-            ],
-        }
-
+        "DVA": [
+            "DVA Minister",
+            "DVA Veteran Affairs",
+            "DVA Repatriation Commission",
+            "DVA Website About",
+            "DVA Website Home",
+            "DVA Website Latest News",
+            # "X DVA",
+            # "Instagram DVA"
+        ],
+        "AWM": [
+            "articles",
+            # "X AWM",
+            # "Instagram AWM"
+        ],
+        "RMA": [
+            "RMA",
+        ],
+    }
 
     choice = st.sidebar.selectbox("Select Source", list(source_groups.keys()))
 
@@ -643,7 +591,6 @@ def main():
 
     with st.form("chat_form", clear_on_submit=True):
         query = st.text_input("Ask anything—article, summary, insight…", key="query")
-
 
         submitted = st.form_submit_button("Ask Agent")
         if submitted and query:
