@@ -495,6 +495,8 @@ def main():
     </style>
     """, unsafe_allow_html=True)
 
+    st.set_page_config(page_title="TPI overwatch")
+
 
     st.title("🕸️ TPI Overwatch AI")
 
