@@ -493,7 +493,7 @@ def main():
             "DVA Veteran Affairs",
             "DVA Repatriation Commission",
             "DVA Website About",
-            "DVA Website Home",
+            # "DVA Website Home",
             "DVA Website Latest News",
             # "X DVA",
             # "Instagram DVA"
