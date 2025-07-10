@@ -495,10 +495,9 @@ def main():
     </style>
     """, unsafe_allow_html=True)
 
-    st.set_page_config(page_title="TPI overwatch")
 
 
-    st.title("🕸️ TPI Overwatch AI")
+    st.title("🕸️ TPI Overwatch")
 
     if "query" not in st.session_state:
         st.session_state["query"] = ""
