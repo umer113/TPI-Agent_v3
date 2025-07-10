@@ -284,7 +284,7 @@ groq_model = "meta-llama/llama-4-scout-17b-16e-instruct"
 
 
 
-sync def ask_agent(csv_text: str, question: str, model: str, chat_history: list) -> str:
+async def ask_agent(csv_text: str, question: str, model: str, chat_history: list) -> str:
     import os
     import tiktoken
     from openai import AsyncOpenAI
