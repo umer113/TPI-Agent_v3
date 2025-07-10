@@ -508,24 +508,26 @@ def main():
     st.sidebar.image("logo.png", width=200)
 
     source_groups = {
-        "DVA": [
-            "DVA Minister",
-            "DVA Veteran Affairs",
-            "DVA Repatriation Commission",
-            "DVA Website About",
-            "DVA Website Home",
-            "DVA Website Latest News",
-            "X DVA",
-            "Instagram DVA"
-        ],
-        "AWM": [
-            "articles",
-            "X AWM",
-        ],
-        "RMA": [
-            "RMA",
-        ],
-    }
+            "Department of Veteran Affairs (DVA)": [
+                "DVA Minister",
+                "DVA Veteran Affairs",
+                "DVA Repatriation Commission",
+                "DVA Website About",
+                "DVA Website Home",
+                "DVA Website Latest News",
+                "X DVA",
+                "Instagram DVA"
+            ],
+            "Australian War Memorial (AWM)": [
+                "articles",
+                "X AWM",
+                "Instagram AWM"
+            ],
+            "Repatriation Medical Authority (RMA)": [
+                "RMA",
+            ],
+        }
+
 
     choice = st.sidebar.selectbox("Select Source", list(source_groups.keys()))
 
