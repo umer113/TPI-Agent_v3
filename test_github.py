@@ -56,7 +56,7 @@ TOP5_SELECTORS = {
 
     "X DVA" : None,
 
-    "Instagram AWM": None,
+    # "Instagram AWM": None,
 
     "Instagram DVA":None,
 
@@ -284,6 +284,9 @@ groq_model = "meta-llama/llama-4-scout-17b-16e-instruct"
 
 
 
+
+
+    # ——— Model Calls ———
 async def ask_agent(csv_text: str, question: str, model: str, chat_history: list) -> str:
     import os
     import tiktoken
@@ -428,9 +431,6 @@ Question: {question}
     return await send_groq() if use_groq else await send_openai()
 
 
-
-
-
     
 def create_docx(content: str) -> BytesIO:
     doc = Document()
@@ -480,6 +480,7 @@ def main():
     """, unsafe_allow_html=True)
 
 
+
     st.title("🕸️ TPI Overwatch")
 
     if "query" not in st.session_state:
@@ -488,25 +489,26 @@ def main():
     st.sidebar.image("logo.png", width=200)
 
     source_groups = {
-        "Department of Veteran Affairs (DVA)": [
-            "DVA Minister",
-            "DVA Veteran Affairs",
-            "DVA Repatriation Commission",
-            "DVA Website About",
-            "DVA Website Home",
-            "DVA Website Latest News",
-            # "X DVA",
-            # "Instagram DVA"
-        ],
-        "Australian War Memorial (AWM)": [
-            "articles",
-            # "X AWM",
-            # "Instagram AWM"
-        ],
-        "Repatriation Medical Authority (RMA)": [
-            "RMA",
-        ],
-    }
+            "Department of Veteran Affairs (DVA)": [
+                "DVA Minister",
+                "DVA Veteran Affairs",
+                "DVA Repatriation Commission",
+                "DVA Website About",
+                "DVA Website Home",
+                "DVA Website Latest News",
+                # "X DVA",
+                # "Instagram DVA"
+            ],
+            "Australian War Memorial (AWM)": [
+                "articles",
+                # "X AWM",
+                # "Instagram AWM"
+            ],
+            "Repatriation Medical Authority (RMA)": [
+                "RMA",
+            ],
+        }
+
 
     choice = st.sidebar.selectbox("Select Source", list(source_groups.keys()))
 
@@ -622,6 +624,7 @@ def main():
 
     with st.form("chat_form", clear_on_submit=True):
         query = st.text_input("Ask anything—article, summary, insight…", key="query")
+
 
         submitted = st.form_submit_button("Ask Agent")
         if submitted and query:

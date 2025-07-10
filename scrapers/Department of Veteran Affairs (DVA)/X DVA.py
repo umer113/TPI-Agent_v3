@@ -272,4 +272,3 @@ if __name__ == "__main__":
     email = "nothing4816@gmail.com"  # Replace with your X.com username
     password = "nothing123@" 
     username = "Nothing023189" # Replace with your X.com password
-    tweets = scrape_tweets(url, filename, email ,username, password)
