@@ -488,7 +488,7 @@ def main():
     st.sidebar.image("logo.png", width=200)
 
     source_groups = {
-        "DVA": [
+        "Department of Veteran Affairs (DVA)": [
             "DVA Minister",
             "DVA Veteran Affairs",
             "DVA Repatriation Commission",
@@ -498,12 +498,12 @@ def main():
             # "X DVA",
             # "Instagram DVA"
         ],
-        "AWM": [
+        "Australian War Memorial (AWM)": [
             "articles",
             # "X AWM",
             # "Instagram AWM"
         ],
-        "RMA": [
+        "Repatriation Medical Authority (RMA)": [
             "RMA",
         ],
     }
